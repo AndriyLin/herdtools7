@@ -1,3 +1,9 @@
+My purpose is to slightly adapt Herd7 as my underlying tool for current research project, generating various executions. 😁
+
+Below is the original README:
+
+=====
+
 This is herdtools7, a tool suite to test weak memory models.
 
 We provide the following tools:

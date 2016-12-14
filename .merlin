@@ -1,0 +1,14 @@
+# structure of project, for merlin mode in Emacs!!
+S gen
+S herd
+S jingle
+S lib
+S litmus
+S tools
+
+B _build/gen
+B _build/herd
+B _build/jingle
+B _build/lib
+B _build/litmus
+B _build/tools
