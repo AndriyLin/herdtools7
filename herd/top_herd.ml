@@ -211,16 +211,17 @@ module Make(O:Config)(M:XXXMem.S) =
 
     (* Which execution this is. Serve as the suffix for dumped files.
      * We generate executions of one litmus test at a time.
-     * So it will reset to 0 for another litmus. *)
-    let execution_index = ref 0
+     * So it will re-initialize to 0 for another litmus. *)
+    let xl_exec_index = ref 0
 
     (* Dump all needed information to indexed files.
      *  test_name: name of the litmus test. It will dump to "test_name@idx.log" file.
+     *  conc: concrete state/configuration of the execution graph.
      *)
     let xl_dump_executions test_name conc =
-      let index_str = Printf.sprintf "%02d" !execution_index in
+      let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
-      execution_index := !execution_index + 1 ;
+      xl_exec_index := !xl_exec_index + 1 ;
 
       let log_oc = open_out full_fname in
       printf "===XL dumping executions of %s===\n" full_fname ;
@@ -230,6 +231,7 @@ module Make(O:Config)(M:XXXMem.S) =
       end ;
       close_out log_oc ;
       ()
+
 
     (* Called by model simulator in case of success *)
     let model_kont ochan test cstr =
