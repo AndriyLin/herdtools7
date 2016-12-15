@@ -206,7 +206,32 @@ module Make(O:Config)(M:XXXMem.S) =
       and loads = S.E.mem_loads_of es.S.E.events in
       S.E.EventSet.subset loads obs
 
-(* Called by model simulator in case of success *)
+
+    (** XL: Instrument here, to save executions to file for future learning!! *)
+
+    (* Which execution this is. Serve as the suffix for dumped files.
+     * We generate executions of one litmus test at a time.
+     * So it will reset to 0 for another litmus. *)
+    let execution_index = ref 0
+
+    (* Dump all needed information to indexed files.
+     *  test_name: name of the litmus test. It will dump to "test_name@idx.log" file.
+     *)
+    let xl_dump_executions test_name conc =
+      let index_str = Printf.sprintf "%02d" !execution_index in
+      let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
+      execution_index := !execution_index + 1 ;
+
+      let log_oc = open_out full_fname in
+      printf "===XL dumping executions of %s===\n" full_fname ;
+      begin
+        (* TODO: real printing stuff here*)
+        fprintf log_oc "See you in file! %s\n" full_fname ;
+      end ;
+      close_out log_oc ;
+      ()
+
+    (* Called by model simulator in case of success *)
     let model_kont ochan test cstr =
       let check = check_prop test in
       let test_locs = S.outcome_locations test in
@@ -239,6 +264,13 @@ module Make(O:Config)(M:XXXMem.S) =
             | ShowAll -> true
             | ShowNone -> false
             | ShowFlag f -> Flag.Set.mem (Flag.Flag f) flags in
+
+          (* XL instrumented here *)
+          (* TODO: Need to filter which executions to dump *)
+          begin
+            let test_name = Test_herd.readable_name test in
+            xl_dump_executions test_name conc
+          end ;
 
           begin match ochan with
           | Some (chan,_) when show_exec ->            
