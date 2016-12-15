@@ -268,10 +268,12 @@ module Make(O:Config)(M:XXXMem.S) =
             | ShowFlag f -> Flag.Set.mem (Flag.Flag f) flags in
 
           (* XL instrumented here *)
-          (* TODO: Need to filter which executions to dump *)
           begin
-            let test_name = Test_herd.readable_name test in
-            xl_dump_executions test_name conc
+            if ok
+            then (* save only those whose results are expected *)
+              let test_name = Test_herd.readable_name test in
+              xl_dump_executions test_name conc
+            else ()
           end ;
 
           begin match ochan with
