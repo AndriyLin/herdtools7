@@ -222,21 +222,31 @@ module Make(O:Config)(M:XXXMem.S) =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
-      xl_exec_index := !xl_exec_index + 1 ;
+      (* index is incremented at the end *)
+
+      let es = conc.S.str in (* event structure *)
+      let rf_map = conc.S.rfmap in
 
       let log_oc = open_out full_fname in
       printf "===XL dumping executions of %s===\n" full_fname ;
       let module DP = Dump2File.Make(S) in
       begin
-        (* TODO: real printing stuff here*)
-        fprintf log_oc "See you in file! %s\n" full_fname ;
-
-        let events = conc.S.str in
-        let rf_map = conc.S.rfmap in
-        DP.dump_events log_oc events rf_map test;
+        DP.dump_events log_oc es ;
+        (* TODO: More here.. *)
         (* DP.dump_rf log_oc rf_map ; *)
+        close_out log_oc
       end ;
-      close_out log_oc ;
+
+      (* Use official Pretty.ml to print out as well, for comparison. *)
+      let full_fname = test_name ^ "-" ^ index_str ^ "-official.log" in
+      let pretty_oc = open_out full_fname in
+      let module PP = Pretty.Make(S) in
+      begin
+        PP.dump_es_rfm pretty_oc test es rf_map ;
+        close_out pretty_oc
+      end ;
+
+      xl_exec_index := !xl_exec_index + 1 ;
       ()
 
 
