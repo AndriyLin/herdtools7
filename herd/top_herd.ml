@@ -215,19 +215,26 @@ module Make(O:Config)(M:XXXMem.S) =
     let xl_exec_index = ref 0
 
     (* Dump all needed information to indexed files.
-     *  test_name: name of the litmus test. It will dump to "test_name@idx.log" file.
+     *  test: the litmus test to test. It will dump to "test_name@idx.log" file.
      *  conc: concrete state/configuration of the execution graph.
      *)
-    let xl_dump_executions test_name conc =
+    let xl_dump_executions test conc =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
+      let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
       xl_exec_index := !xl_exec_index + 1 ;
 
       let log_oc = open_out full_fname in
       printf "===XL dumping executions of %s===\n" full_fname ;
+      let module DP = Dump2File.Make(S) in
       begin
         (* TODO: real printing stuff here*)
         fprintf log_oc "See you in file! %s\n" full_fname ;
+
+        let events = conc.S.str in
+        let rf_map = conc.S.rfmap in
+        DP.dump_events log_oc events rf_map test;
+        (* DP.dump_rf log_oc rf_map ; *)
       end ;
       close_out log_oc ;
       ()
@@ -271,8 +278,7 @@ module Make(O:Config)(M:XXXMem.S) =
           begin
             if ok
             then (* save only those whose results are expected *)
-              let test_name = Test_herd.readable_name test in
-              xl_dump_executions test_name conc
+              xl_dump_executions test conc
             else ()
           end ;
 
