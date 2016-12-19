@@ -191,6 +191,7 @@ module Make (SemArg : SemExtra.S) = struct
 
   (* Print a section of all edges of one relation. *)
   let dump_rels log_oc rels rel_name =
+    let rels = filter_rel rels in (* retain only NonRegEvent related relations! *)
     let n_rels = Evt.EventRel.cardinal rels in
     fprintf log_oc "=====%s relations=====%n\n" rel_name n_rels ; (* %n: set size *)
     dump_rel log_oc rels ;
@@ -226,7 +227,6 @@ module Make (SemArg : SemExtra.S) = struct
   (* The easy way of dumping "po" relations, using information in conc. *)
   let dump_po log_oc conc =
     let po = conc.Sem.po in
-    let po = filter_rel po in (* retaining only NonRegEvents related relations *)
     dump_rels log_oc po "po"
 
   (* For the "intra_causality_data" edges. *)
@@ -244,7 +244,6 @@ module Make (SemArg : SemExtra.S) = struct
   (* Dump "co" relation, coherence. *)
   let dump_co log_oc conc =
     let co = conc.Sem.pco in
-    let co = filter_rel co in
     dump_rels log_oc co "co"
 
   (* Dump the rest relations inside conc *)
