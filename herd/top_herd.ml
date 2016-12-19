@@ -215,10 +215,11 @@ module Make(O:Config)(M:XXXMem.S) =
     let xl_exec_index = ref 0
 
     (* Dump all needed information to indexed files.
-     *  test: the litmus test to test. It will dump to "test_name@idx.log" file.
-     *  conc: concrete state/configuration of the execution graph.
+     *  test: the litmus test to test. It will dump to "test_name@idx.log" file;
+     *  conc: concrete state/configuration of the execution graph;
+     *  vbpp: contains extra relations to print, e.g. ghb / co / fr;
      *)
-    let xl_dump_executions test conc =
+    let xl_dump_executions test conc vbpp =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
@@ -237,6 +238,15 @@ module Make(O:Config)(M:XXXMem.S) =
         DP.dump_co log_oc conc ;
         DP.dump_icd log_oc es ;
         DP.dump_icc log_oc es ;
+
+        let rec iter_vbpp = function
+          | [] -> ()
+          | (rel_name, rel) :: rs -> begin
+              DP.dump_rels log_oc rel (rel_name ^ " (vbs)");
+              iter_vbpp rs
+            end in
+        iter_vbpp (Lazy.force vbpp) ;
+
         DP.dump_rest log_oc conc ;
         close_out log_oc
       end ;
@@ -292,7 +302,7 @@ module Make(O:Config)(M:XXXMem.S) =
           begin
             if ok
             then (* save only those whose results are expected *)
-              xl_dump_executions test conc
+              xl_dump_executions test conc vbpp
             else ()
           end ;
 
