@@ -33,6 +33,7 @@ module Make (SemArg : SemExtra.S) = struct
       intra_causality_data = filter_rel es.Evt.intra_causality_data;
       intra_causality_control = filter_rel es.Evt.intra_causality_control; }
 
+
   let id_str_of e = sprintf "eiid:%i" e.Evt.eiid
 
   (* Print out ID / Thread-ID / Action / Address (variable) / Value.
@@ -49,22 +50,43 @@ module Make (SemArg : SemExtra.S) = struct
         in sprintf "Pid:%i" pid in
       pl log_oc ("  " ^ (tid_str_of e)) ;
 
-      (* TODO Action / Address / Value should all be parsed from pp_action... *)
-      let action_str_of e = "Action:" ^ Evt.pp_action e in
-      let action_str = "  " ^ (action_str_of e) in
+      (* For debugging *)
+      pl log_oc ("  " ^ "Full Action: " ^ Evt.pp_action e) ;
+
+      let action_str_of a =
+        let s =
+          if Evt.Act.is_store a
+          then "W"
+          else if Evt.Act.is_load a
+          then "R"
+          else if Evt.Act.is_barrier a
+          then "F"
+          else Evt.Act.pp_action a
+        in "Action:" ^ s
+      in
+      let act = e.Evt.action in
+      let action_str = "  " ^ (action_str_of act) in
       let action_str =
         if is_init_f e
         then action_str ^ "(Init)"
         else action_str in
       pl log_oc action_str ;
 
-      (* TODO *)
-      let address_str_of e = "Address:" ^ Evt.pp_action e in
-      pl log_oc ("  " ^ (address_str_of e)) ;
+      let address_str_of a =
+        let s = match Evt.Act.location_of a with
+          | Some loc -> Arch.pp_location loc
+          | None -> Evt.Act.pp_action a
+        in "Address:" ^ s
+      in
+      pl log_oc ("  " ^ (address_str_of act)) ;
 
-      (* TODO *)
-      let value_str_of e = "Value:" ^ Evt.pp_action e in
-      pl log_oc ("  " ^ (value_str_of e))
+      let value_str_of a =
+        let s = match Evt.Act.value_of a with
+          | Some v -> Arch.V.pp_v v
+          | None -> Evt.Act.pp_action a
+        in "Value:" ^ s
+      in
+      pl log_oc ("  " ^ (value_str_of act))
     end
 
   (* Dump all the events to file, including each one's
