@@ -234,6 +234,8 @@ module Make(O:Config)(M:XXXMem.S) =
         DP.dump_events log_oc es ;
         DP.dump_rf log_oc rf_map ;
         DP.dump_po log_oc es rf_map;
+        DP.dump_icd log_oc es ;
+        DP.dump_icc log_oc es ;
         close_out log_oc
       end ;
 

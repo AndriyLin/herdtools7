@@ -181,9 +181,28 @@ module Make (SemArg : SemExtra.S) = struct
       (List.map min_max_to_succ min_max_list)
 
 
+  (* For one relation, just write its two events' IDs. *)
+  let dump_rel log_oc =
+    Evt.EventRel.pp log_oc "\n"
+                    (fun chan (e1, e2) ->
+                      fprintf chan "%s -> %s"
+                              (id_str_of e1) (id_str_of e2)
+                    )
+
+  (* Print a section of all edges of one relation. *)
+  let dump_rels log_oc rels rel_name =
+    let n_rels = Evt.EventRel.cardinal rels in
+    fprintf log_oc "=====%s relations=====%n\n" rel_name n_rels ; (* %n: set size *)
+    dump_rel log_oc rels ;
+    fprintf log_oc "\n"
+
+
   (* Dump all the po relations to file. Although there is "pos" in concrete,
    * somehow it is empty at this moment. *)
   let dump_po log_oc es rf_map =
+    let es = select_es es in
+    let rf_map = select_rfmap rf_map in
+
     let module PU = PrettyUtils.Make(Sem) in
     let events_by_proc_and_poi = PU.make_by_proc_and_poi es in
 
@@ -197,20 +216,23 @@ module Make (SemArg : SemExtra.S) = struct
     in
 
     let po_edges = make_visible_po es events_by_proc_and_poi in
+    (* FIXME: I've no idea why this diff is necessary.. *)
     let po_edges = Evt.EventRel.diff po_edges replaces_po in
     (* let po_edges = reduces_more  po_edges replaces_po in *)
     (* commented out in Pretty.ml *)
-    let n_pos = Evt.EventRel.cardinal po_edges in
+    dump_rels log_oc po_edges "po"
 
-    let iter_po =
-      Evt.EventRel.pp log_oc "\n"
-                      (fun chan (e1, e2) ->
-                        fprintf chan "%s -> %s"
-                                (id_str_of e1) (id_str_of e2)
-                      )
-    in
-    fprintf log_oc "=====po relations=====%n\n" n_pos ; (* print set size *)
-    iter_po po_edges ;
-    fprintf log_oc "\n"
+
+  (* For the "intra_causality_data" edges. *)
+  let dump_icd log_oc es =
+    let es = select_es es in
+    let icds = es.Evt.intra_causality_data in
+    dump_rels log_oc icds "Intra Causality Data"
+
+  (* For the "intra_causality_control" edges. *)
+  let dump_icc log_oc es =
+    let es = select_es es in
+    let iccs = es.Evt.intra_causality_control in
+    dump_rels log_oc iccs "Intra Causality Control"
 
 end
