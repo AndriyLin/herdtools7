@@ -232,8 +232,8 @@ module Make(O:Config)(M:XXXMem.S) =
       let module DP = Dump2File.Make(S) in
       begin
         DP.dump_events log_oc es ;
-        DP.dump_po log_oc conc;
         DP.dump_rf log_oc rf_map ;
+        DP.dump_po log_oc es rf_map;
         close_out log_oc
       end ;
 
