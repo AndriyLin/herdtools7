@@ -197,9 +197,10 @@ module Make (SemArg : SemExtra.S) = struct
     fprintf log_oc "\n"
 
 
-  (* Dump all the po relations to file. Although there is "pos" in concrete,
-   * somehow it is empty at this moment. *)
-  let dump_po log_oc es rf_map =
+  (* Dump all the po relations to file. This is following that in Pretty.ml,
+   * which may be a bit cumbersome..
+   * I think I can just use that in "conc" instead. *)
+  let dump_po_2 log_oc es rf_map =
     let es = select_es es in
     let rf_map = select_rfmap rf_map in
 
@@ -220,8 +221,13 @@ module Make (SemArg : SemExtra.S) = struct
     let po_edges = Evt.EventRel.diff po_edges replaces_po in
     (* let po_edges = reduces_more  po_edges replaces_po in *)
     (* commented out in Pretty.ml *)
-    dump_rels log_oc po_edges "po"
+    dump_rels log_oc po_edges "po (Pretty.ml)"
 
+  (* The easy way of dumping "po" relations, using information in conc. *)
+  let dump_po log_oc conc =
+    let po = conc.Sem.po in
+    let po = filter_rel po in (* retaining only NonRegEvents related relations *)
+    dump_rels log_oc po "po"
 
   (* For the "intra_causality_data" edges. *)
   let dump_icd log_oc es =
@@ -234,5 +240,23 @@ module Make (SemArg : SemExtra.S) = struct
     let es = select_es es in
     let iccs = es.Evt.intra_causality_control in
     dump_rels log_oc iccs "Intra Causality Control"
+
+  (* Dump "co" relation, coherence. *)
+  let dump_co log_oc conc =
+    let co = conc.Sem.pco in
+    let co = filter_rel co in
+    dump_rels log_oc co "co"
+
+  (* Dump the rest relations inside conc *)
+  let dump_rest log_oc conc =
+    let es = conc.Sem.str in
+    let rf_map = conc.Sem.rfmap in
+    dump_po_2 log_oc es rf_map ;
+
+    dump_rels log_oc (conc.Sem.pos) "pos (conc)" ;
+    dump_rels log_oc (conc.Sem.store_load_vbf) "store-load vbf (conc)" ;
+    dump_rels log_oc (conc.Sem.init_load_vbf) "init-load vbf (conc)" ;
+    dump_rels log_oc (conc.Sem.last_store_vbf) "last-store vbf (conc)" ;
+    dump_rels log_oc (conc.Sem.atomic_load_store) "atomic-load-store (conc)"
 
 end
