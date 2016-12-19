@@ -14,14 +14,7 @@ module Make (SemArg : SemExtra.S) = struct
 
   module Sem = SemArg
   module Evt = Sem.E
-
-  (* for defining Test_herd *)
   module Arch = Sem.A
-  module Test = Test_herd.Make(Arch)
-
-  open PrettyConf
-  module PC = Sem.O.PC (* PC: PrettyConf *)
-  open PPMode (* May not be necessary *)
 
 
   (* Filter out only specific events to display.
@@ -40,37 +33,13 @@ module Make (SemArg : SemExtra.S) = struct
       intra_causality_data = filter_rel es.Evt.intra_causality_data;
       intra_causality_control = filter_rel es.Evt.intra_causality_control; }
 
-  (* Copied from Pretty.ml:
-   *   Filter out only those rfs concerning the events to show. *)
-  let select_rfmap rfm =
-    Sem.RFMap.fold
-      (fun wt rf k ->
-        match wt,rf with
-        | (Sem.Load e1, Sem.Store e2) ->
-           begin
-             match filter_event e1, filter_event e2 with
-             | true, true -> Sem.RFMap.add wt rf k
-             | true, false ->
-                if Evt.is_mem_store_init e2
-                then Sem.RFMap.add wt Sem.Init k
-                else k
-             | _, _ -> k
-           end
-        | (Sem.Final _, Sem.Store e)
-        | (Sem.Load e,Sem.Init) ->
-           if filter_event e
-           then Sem.RFMap.add wt rf k
-           else k
-        | (Sem.Final _, Sem.Init) -> k)
-      rfm Sem.RFMap.empty
-
+  let id_str_of e = sprintf "eiid:%i" e.Evt.eiid
 
   (* Print out ID / Thread-ID / Action / Address (variable) / Value.
    *   is_init_f: a filter function that returns true when e is init. *)
   let dump_event log_oc is_init_f e =
     let pl chan = fprintf chan "%s\n" in
     begin
-      let id_str_of e = sprintf "eiid:%i" e.Evt.eiid in
       pl log_oc (id_str_of e) ;
 
       let tid_str_of e =
@@ -104,7 +73,7 @@ module Make (SemArg : SemExtra.S) = struct
   let dump_events log_oc es =
     let es = select_es es in (* retain only NonRegEvents *)
 
-    fprintf log_oc "=====All Events=====" ;
+    fprintf log_oc "=====events=====" ;
     let evts = es.Evt.events in
     let init_evts = Evt.mem_stores_init_of evts in
     fprintf log_oc "%n\n" (Evt.EventSet.cardinal evts) ; (* print set size *)
@@ -116,13 +85,63 @@ module Make (SemArg : SemExtra.S) = struct
 
 
   (* Dump all the po relations to file. *)
-  let dump_po log_oc =
+  let dump_po log_oc conc =
+    fprintf log_oc "=====po relations=====" ;
+    fprintf log_oc "%n\n" 1024 ; (* print map size *)
     (* TODO *)
     ()
 
-  (* Dump all the rf relations to file. *)
+
+
+  (* Copied from Pretty.ml:
+   *   Filter out only those rfs concerning the events to show. *)
+  let select_rfmap rfm =
+    Sem.RFMap.fold
+      (fun wt rf k ->
+        match wt,rf with
+        | (Sem.Load e1, Sem.Store e2) ->
+           begin
+             match filter_event e1, filter_event e2 with
+             | true, true -> Sem.RFMap.add wt rf k
+             | true, false ->
+                if Evt.is_mem_store_init e2
+                then Sem.RFMap.add wt Sem.Init k
+                else k
+             | _, _ -> k
+           end
+        | (Sem.Final _, Sem.Store e)
+        | (Sem.Load e,Sem.Init) ->
+           if filter_event e
+           then Sem.RFMap.add wt rf k
+           else k
+        | (Sem.Final _, Sem.Init) -> k)
+      rfm Sem.RFMap.empty
+
+
+  (* Dump all the rf relations to file.
+   * I don't need to do things like make_rf_from_rfmap() as in Pretty.ml *)
   let dump_rf log_oc rf_map =
-    (* TODO *)
-    ()
+    let rf_map = select_rfmap rf_map in
+    fprintf log_oc "=====rf relations=====" ;
+    fprintf log_oc "%n\n" (Sem.RFMap.cardinal rf_map) ; (* print map size *)
+
+    Sem.pp_rfmap log_oc "\n"
+                 (fun chan wt rf ->
+                   match wt, rf with
+                   | Sem.Load er, Sem.Store ew ->
+                      fprintf log_oc "%s -> %s"
+                              (id_str_of ew) (id_str_of er)
+                   | Sem.Final loc, Sem.Store ew ->
+                      fprintf log_oc "%s -> _ (final), loc: %s"
+                              (id_str_of ew) (Arch.pp_location loc)
+                   | Sem.Load er, Sem.Init ->
+                      fprintf log_oc "_ -> %s (init)"
+                              (id_str_of er) (* TODO: also dump er's variable? *)
+                   | Sem.Final loc, Sem.Init ->
+                      fprintf log_oc "_ -> _ (init->final), loc: %s"
+                              (Arch.pp_location loc)
+                 )
+                 rf_map ;
+    fprintf log_oc "\n"
 
 end
