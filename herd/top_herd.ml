@@ -215,14 +215,14 @@ module Make(O:Config)(M:XXXMem.S) =
     let xl_exec_index = ref 0
 
     (* Dump all needed information to indexed files.
-     *  test: the litmus test to test. It will dump to "test_name@idx.log" file;
+     *  test: the litmus test to test. It will dump to "test_name@idx.elog" file;
      *  conc: concrete state/configuration of the execution graph;
      *  vbpp: contains extra relations to print, e.g. ghb / co / fr;
      *)
     let xl_dump_executions test conc vbpp =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
-      let full_fname = test_name ^ "-" ^ index_str ^ ".log" in
+      let full_fname = test_name ^ "-" ^ index_str ^ ".elog" in
       (* index is incremented at the end *)
 
       let es = conc.S.str in (* event structure *)
