@@ -138,7 +138,9 @@ module Make (SemArg : SemExtra.S) = struct
   let dump_rf log_oc rf_map =
     let rf_map = select_rfmap rf_map in
     let n_rfs = Sem.RFMap.cardinal rf_map in
-    fprintf log_oc "=====rf relations=====%n\n" n_rfs ; (* print map size *);
+    fprintf log_oc "=====relation=====\n" ;
+    fprintf log_oc "name:rf\n" ;
+    fprintf log_oc "amount:%n\n" n_rfs ;
 
     Sem.pp_rfmap log_oc "\n"
                  (fun chan wt rf ->
@@ -208,7 +210,7 @@ module Make (SemArg : SemExtra.S) = struct
   let dump_rel log_oc =
     Evt.EventRel.pp log_oc "\n"
                     (fun chan (e1, e2) ->
-                      fprintf chan "%s -> %s"
+                      fprintf chan "%s->%s"
                               (id_str_of e1) (id_str_of e2)
                     )
 
@@ -216,9 +218,15 @@ module Make (SemArg : SemExtra.S) = struct
   let dump_rels log_oc rels rel_name =
     let rels = filter_rel rels in (* retain only NonRegEvent related relations! *)
     let n_rels = Evt.EventRel.cardinal rels in
-    fprintf log_oc "=====%s relations=====%n\n" rel_name n_rels ; (* %n: set size *)
-    dump_rel log_oc rels ;
-    fprintf log_oc "\n"
+    fprintf log_oc "=====relation=====\n";
+    fprintf log_oc "name:%s\n" rel_name ;
+    fprintf log_oc "amount:%n\n" n_rels ;
+    if n_rels > 0
+    then begin
+        dump_rel log_oc rels ;
+        (* '\n' in dump_rel is just a delimiter, no \n for last *)
+        fprintf log_oc "\n"
+      end
 
 
   (* Dump all the po relations to file. This is following that in Pretty.ml,
@@ -275,10 +283,10 @@ module Make (SemArg : SemExtra.S) = struct
     let rf_map = conc.Sem.rfmap in
     dump_po_2 log_oc es rf_map ;
 
-    dump_rels log_oc (conc.Sem.pos) "pos (conc)" ;
-    dump_rels log_oc (conc.Sem.store_load_vbf) "store-load vbf (conc)" ;
-    dump_rels log_oc (conc.Sem.init_load_vbf) "init-load vbf (conc)" ;
-    dump_rels log_oc (conc.Sem.last_store_vbf) "last-store vbf (conc)" ;
-    dump_rels log_oc (conc.Sem.atomic_load_store) "atomic-load-store (conc)"
+    dump_rels log_oc (conc.Sem.pos) "pos(conc)" ;
+    dump_rels log_oc (conc.Sem.store_load_vbf) "store-load vbf(conc)" ;
+    dump_rels log_oc (conc.Sem.init_load_vbf) "init-load vbf(conc)" ;
+    dump_rels log_oc (conc.Sem.last_store_vbf) "last-store vbf(conc)" ;
+    dump_rels log_oc (conc.Sem.atomic_load_store) "atomic-load-store(conc)"
 
 end
