@@ -62,7 +62,7 @@ module Make (SemArg : SemExtra.S) = struct
           else if Evt.Act.is_barrier a
           then "F"
           else Evt.Act.pp_action a
-        in "Action:" ^ s
+        in "action:" ^ s
       in
       let act = e.Evt.action in
       let action_str = action_str_of act in
@@ -76,7 +76,7 @@ module Make (SemArg : SemExtra.S) = struct
         let s = match Evt.Act.location_of a with
           | Some loc -> Arch.pp_location loc
           | None -> Evt.Act.pp_action a
-        in "Address:" ^ s
+        in "address:" ^ s
       in
       pl log_oc (address_str_of act) ;
 
@@ -84,7 +84,7 @@ module Make (SemArg : SemExtra.S) = struct
         let s = match Evt.Act.value_of a with
           | Some v -> Arch.V.pp_v v
           | None -> Evt.Act.pp_action a
-        in "Value:" ^ s
+        in "value:" ^ s
       in
       pl log_oc (value_str_of act)
     end
