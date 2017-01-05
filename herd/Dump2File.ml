@@ -41,17 +41,17 @@ module Make (SemArg : SemExtra.S) = struct
   let dump_event log_oc is_init_f e =
     let pl chan = fprintf chan "%s\n" in
     begin
+      (* For debugging *)
+      pl log_oc ("---Full Action:" ^ (Evt.pp_action e) ^ "---") ;
+
       pl log_oc (id_str_of e) ;
 
       let tid_str_of e =
         let pid = match Evt.proc_of e with
           | Some p -> p
           | None -> (-1) (* e.g. init events do not belong to a thread *)
-        in sprintf "Pid:%i" pid in
-      pl log_oc ("  " ^ (tid_str_of e)) ;
-
-      (* For debugging *)
-      pl log_oc ("  " ^ "Full Action: " ^ Evt.pp_action e) ;
+        in sprintf "pid:%i" pid in
+      pl log_oc (tid_str_of e) ;
 
       let action_str_of a =
         let s =
@@ -65,7 +65,7 @@ module Make (SemArg : SemExtra.S) = struct
         in "Action:" ^ s
       in
       let act = e.Evt.action in
-      let action_str = "  " ^ (action_str_of act) in
+      let action_str = action_str_of act in
       let action_str =
         if is_init_f e
         then action_str ^ "(Init)"
@@ -78,7 +78,7 @@ module Make (SemArg : SemExtra.S) = struct
           | None -> Evt.Act.pp_action a
         in "Address:" ^ s
       in
-      pl log_oc ("  " ^ (address_str_of act)) ;
+      pl log_oc (address_str_of act) ;
 
       let value_str_of a =
         let s = match Evt.Act.value_of a with
@@ -86,7 +86,7 @@ module Make (SemArg : SemExtra.S) = struct
           | None -> Evt.Act.pp_action a
         in "Value:" ^ s
       in
-      pl log_oc ("  " ^ (value_str_of act))
+      pl log_oc (value_str_of act)
     end
 
   (* Dump all the events to file, including each one's
@@ -102,7 +102,8 @@ module Make (SemArg : SemExtra.S) = struct
     let iter_event =
       dump_event log_oc (fun e -> Evt.EventSet.mem e init_evts) in
 
-    fprintf log_oc "=====events=====%n\n" n_evts ;  (* print set size *)
+    fprintf log_oc "=====events=====\n" ;
+    fprintf log_oc "Amount:%n\n" n_evts ; (* print set size *)
     Evt.EventSet.iter iter_event evts
 
 

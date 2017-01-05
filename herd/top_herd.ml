@@ -252,7 +252,7 @@ module Make(O:Config)(M:XXXMem.S) =
       end ;
 
       (* Use official Pretty.ml to print out as well, for comparison. *)
-      let full_fname = test_name ^ "-" ^ index_str ^ "-official.log" in
+      let full_fname = test_name ^ "-" ^ index_str ^ "-official.elog" in
       let pretty_oc = open_out full_fname in
       let module PP = Pretty.Make(S) in
       begin
