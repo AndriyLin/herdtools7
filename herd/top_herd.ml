@@ -232,6 +232,8 @@ module Make(O:Config)(M:XXXMem.S) =
       printf "===XL dumping executions of %s===\n" full_fname ;
       let module DP = Dump2File.Make(S) in
       begin
+        fprintf log_oc "Test:%s\n" test_name ;
+        fprintf log_oc "Index:%02d\n" !xl_exec_index ;
         DP.dump_events log_oc es ;
         DP.dump_rf log_oc rf_map ;
         DP.dump_po log_oc conc ;
@@ -242,7 +244,7 @@ module Make(O:Config)(M:XXXMem.S) =
         let rec iter_vbpp = function
           | [] -> ()
           | (rel_name, rel) :: rs -> begin
-              DP.dump_rels log_oc rel (rel_name ^ " (vbs)");
+              DP.dump_rels log_oc rel (rel_name ^ "(vbs)");
               iter_vbpp rs
             end in
         iter_vbpp (Lazy.force vbpp) ;

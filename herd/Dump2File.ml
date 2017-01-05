@@ -253,7 +253,7 @@ module Make (SemArg : SemExtra.S) = struct
     let po_edges = Evt.EventRel.diff po_edges replaces_po in
     (* let po_edges = reduces_more  po_edges replaces_po in *)
     (* commented out in Pretty.ml *)
-    dump_rels log_oc po_edges "po (Pretty.ml)"
+    dump_rels log_oc po_edges "po(Pretty.ml)"
 
   (* The easy way of dumping "po" relations, using information in conc. *)
   let dump_po log_oc conc =
