@@ -103,7 +103,7 @@ module Make (SemArg : SemExtra.S) = struct
       dump_event log_oc (fun e -> Evt.EventSet.mem e init_evts) in
 
     fprintf log_oc "=====events=====\n" ;
-    fprintf log_oc "Amount:%n\n" n_evts ; (* print set size *)
+    fprintf log_oc "amount:%n\n" n_evts ; (* print set size *)
     Evt.EventSet.iter iter_event evts
 
 
@@ -146,16 +146,16 @@ module Make (SemArg : SemExtra.S) = struct
                  (fun chan wt rf ->
                    match wt, rf with
                    | Sem.Load er, Sem.Store ew ->
-                      fprintf log_oc "%s -> %s"
+                      fprintf log_oc "%s->%s"
                               (id_str_of ew) (id_str_of er)
                    | Sem.Final loc, Sem.Store ew ->
-                      fprintf log_oc "%s -> _ (final), loc: %s"
+                      fprintf log_oc "%s->_ (final), loc: %s"
                               (id_str_of ew) (Arch.pp_location loc)
                    | Sem.Load er, Sem.Init ->
-                      fprintf log_oc "_ -> %s (init)"
+                      fprintf log_oc "_->%s (init)"
                               (id_str_of er) (* TODO: also dump er's variable? *)
                    | Sem.Final loc, Sem.Init ->
-                      fprintf log_oc "_ -> _ (init->final), loc: %s"
+                      fprintf log_oc "_->_ (init->final), loc: %s"
                               (Arch.pp_location loc)
                  )
                  rf_map ;
