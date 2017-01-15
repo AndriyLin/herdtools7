@@ -16,6 +16,11 @@
 
 (** Top level loop : execute test according to model *)
 
+(* XL: I had to open these modules to dump the variables that are used in
+ *  litmus condition.. It's ugly.. but I am not expert in OCaml, yet.
+ *)
+open Test_herd
+
 module type Config = sig
   val auto : bool
   val candidates : bool
@@ -218,14 +223,34 @@ module Make(O:Config)(M:XXXMem.S) =
      *  test: the litmus test to test. It will dump to "test_name@idx.elog" file;
      *  conc: concrete state/configuration of the execution graph;
      *  vbpp: contains extra relations to print, e.g. ghb / co / fr;
-     *  sat: true is this concrete execution satisfies the litmus condition;
+     *  sat (bool): true is this concrete execution satisfies the litmus condition;
+     *  condStr (string): pretty printed string for the litmus condition;
+     *  test_locs (MySet[A.location]): the locations that are/couldbe used in condition;
      *)
-    let xl_dump_executions test conc vbpp sat =
+    let xl_dump_executions test conc vbpp sat condStr test_locs =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".elog" in
       let resultStr = if sat then "positive" else "negative" in
       (* index is incremented at the end *)
+
+      (* I spent hours finally figuring out how to print out those Variable
+         names used in condition, only to find out that they may not necessarily
+         relate to the "final rf" relation I desire..
+
+         The printed names are like "1:r1" or "0:r2".. But these register values
+         are omitted in my output! I tried turning on the output for register
+         variables, but that requires non-trivial search in the generated graph,
+         or in rfmap here.
+
+         Finally, I gave up. I'll manually specify the relations to be
+         labeled.... Or just use all RF edges as labeled, by default. *)
+      let iter_loc idx loc =
+        if C.loc_in loc test.cond
+        then
+          let locStr = A.pp_location loc in
+          printf "VarInCondition: %s\n" locStr
+      in A.LocSet.iteri iter_loc test_locs ;
 
       let es = conc.S.str in (* event structure *)
       let rf_map = conc.S.rfmap in
@@ -236,7 +261,9 @@ module Make(O:Config)(M:XXXMem.S) =
       begin
         fprintf log_oc "Test:%s\n" test_name ;
         fprintf log_oc "Index:%02d\n" !xl_exec_index ;
+        fprintf log_oc "Condition:%s\n" condStr ;
         fprintf log_oc "Result:%s\n" resultStr ;
+        fprintf log_oc "Manually Labeled RF:\n" ; (* Failed to generate that automatically.. *)
         DP.dump_events log_oc es ;
         DP.dump_rf log_oc rf_map ;
         DP.dump_po log_oc conc ;
@@ -308,8 +335,8 @@ module Make(O:Config)(M:XXXMem.S) =
             (* I save all executions now. Satisfying ones will be used for
              * training and demo; while UNSAT ones will be used in demo only.
              * But I do need to tell them the result. *)
-            xl_dump_executions test conc vbpp ok
-            (* FIXME I also need to tell them which variables are related in condition. *)
+            let condStr = C.constraints_to_string test.cond in
+            xl_dump_executions test conc vbpp ok condStr test_locs
           end ;
 
           begin match ochan with
