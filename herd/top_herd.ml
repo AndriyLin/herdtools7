@@ -218,11 +218,13 @@ module Make(O:Config)(M:XXXMem.S) =
      *  test: the litmus test to test. It will dump to "test_name@idx.elog" file;
      *  conc: concrete state/configuration of the execution graph;
      *  vbpp: contains extra relations to print, e.g. ghb / co / fr;
+     *  sat: true is this concrete execution satisfies the litmus condition;
      *)
-    let xl_dump_executions test conc vbpp =
+    let xl_dump_executions test conc vbpp sat =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".elog" in
+      let resultStr = if sat then "positive" else "negative" in
       (* index is incremented at the end *)
 
       let es = conc.S.str in (* event structure *)
@@ -234,6 +236,7 @@ module Make(O:Config)(M:XXXMem.S) =
       begin
         fprintf log_oc "Test:%s\n" test_name ;
         fprintf log_oc "Index:%02d\n" !xl_exec_index ;
+        fprintf log_oc "Result:%s\n" resultStr ;
         DP.dump_events log_oc es ;
         DP.dump_rf log_oc rf_map ;
         DP.dump_po log_oc conc ;
@@ -302,10 +305,11 @@ module Make(O:Config)(M:XXXMem.S) =
 
           (* XL instrumented here *)
           begin
-            if ok
-            then (* save only those whose results are expected *)
-              xl_dump_executions test conc vbpp
-            else ()
+            (* I save all executions now. Satisfying ones will be used for
+             * training and demo; while UNSAT ones will be used in demo only.
+             * But I do need to tell them the result. *)
+            xl_dump_executions test conc vbpp ok
+            (* FIXME I also need to tell them which variables are related in condition. *)
           end ;
 
           begin match ochan with
