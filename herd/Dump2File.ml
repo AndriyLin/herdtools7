@@ -149,11 +149,11 @@ module Make (SemArg : SemExtra.S) = struct
                       fprintf log_oc "%s->%s"
                               (id_str_of ew) (id_str_of er)
                    | Sem.Final loc, Sem.Store ew ->
-                      fprintf log_oc "%s->_ (final), loc: %s"
+                      fprintf log_oc "%s->FinalOf:%s"
                               (id_str_of ew) (Arch.pp_location loc)
                    | Sem.Load er, Sem.Init ->
                       fprintf log_oc "_->%s (init)"
-                              (id_str_of er) (* TODO: also dump er's variable? *)
+                              (id_str_of er) (* This one seems never used in reality, because there is always a Write as Init. *)
                    | Sem.Final loc, Sem.Init ->
                       fprintf log_oc "_->_ (init->final), loc: %s"
                               (Arch.pp_location loc)

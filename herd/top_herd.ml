@@ -263,7 +263,6 @@ module Make(O:Config)(M:XXXMem.S) =
         fprintf log_oc "Index:%02d\n" !xl_exec_index ;
         fprintf log_oc "Condition:%s\n" condStr ;
         fprintf log_oc "Result:%s\n" resultStr ;
-        fprintf log_oc "Manually Labeled RF:\n" ; (* Failed to generate that automatically.. *)
         DP.dump_events log_oc es ;
         DP.dump_rf log_oc rf_map ;
         DP.dump_po log_oc conc ;
