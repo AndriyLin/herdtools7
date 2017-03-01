@@ -221,32 +221,20 @@ module Make(O:Config)(M:XXXMem.S) =
      *  vbpp: contains extra relations to print, e.g. ghb / co / fr;
      *  sat (bool): true is this concrete execution satisfies the litmus condition;
      *  condStr (string): pretty printed string for the litmus condition;
-     *  test_locs (MySet[A.location]): the locations that are/couldbe used in condition;
      *)
-    let xl_dump_executions test conc vbpp sat condStr test_locs =
+    let xl_dump_executions test conc vbpp sat condStr  =
       let index_str = Printf.sprintf "%02d" !xl_exec_index in
       let test_name = Test_herd.readable_name test in
       let full_fname = test_name ^ "-" ^ index_str ^ ".elog" in
       let resultStr = if sat then "positive" else "negative" in
       (* index is incremented at the end *)
 
-      (* I spent hours finally figuring out how to print out those Variable
-         names used in condition, only to find out that they may not necessarily
-         relate to the "final rf" relation I desire..
-
-         The printed names are like "1:r1" or "0:r2".. But these register values
-         are omitted in my output! I tried turning on the output for register
-         variables, but that requires non-trivial search in the generated graph,
-         or in rfmap here.
-
-         Finally, I gave up. I'll manually specify the relations to be
-         labeled.... Or just use all RF edges as labeled, by default. *)
-      let iter_loc idx loc =
-        if C.loc_in loc test.cond
-        then
-          let locStr = A.pp_location loc in
-          printf "VarInCondition: %s\n" locStr
-      in A.LocSet.iteri iter_loc test_locs ;
+      (* I was trying to find variables (e.g. 1:r1, 0:r2) used in conditions in
+         order to resolve the "final rf" relation. But those variables, even if
+         specified using non-trivial rfmap search and more, don't necessarily
+         relate to my goal. So I avoided iterating variable test_locs, which is
+         removed in v7.44 code as well. This "final RF" support done in scala
+         code at the end. All RF edges are considered as "labeled". *)
 
       let es = conc.S.str in (* event structure *)
       let rf_map = conc.S.rfmap in
@@ -326,11 +314,11 @@ module Make(O:Config)(M:XXXMem.S) =
 
           (* XL instrumented here *)
           begin
-            (* I save all executions now. Satisfying ones will be used for
-             * training and demo; while UNSAT ones will be used in demo only.
-             * But I do need to tell them the result. *)
+            (* Runing litmus tests with complete allowed/forbidden behaviors, I
+               save all executions here. Those allowed ones will be used as
+               positive examples, while forbidden ones are negative examples. *)
             let condStr = C.constraints_to_string test.cond in
-            xl_dump_executions test conc vbpp ok condStr test_locs
+            xl_dump_executions test conc vbpp ok condStr
           end ;
 
           begin match ochan with
