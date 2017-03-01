@@ -300,12 +300,13 @@ module Make (C:Sem.Config)(V:Value.S)
 	(read_reg_or_zero false rA ii >>| read_reg_ord rB ii) >>=
 	fun (aA,aB) -> 
 	  M.add aA aB >>=
-	  fun a ->
-	    read_addr_res a ii >>=
-	    (fun v -> write_reg rD v ii >>| write_reg PPC.RES V.one ii >>| write_reg PPC.RESADDR a ii) 
+	  (fun a ->
+	    write_reg PPC.RES V.one ii >>| write_reg PPC.RESADDR a ii >>|
+	    (read_addr_res a ii >>=  fun v -> write_reg rD v ii))
               >>! B.Next
     | PPC.Pstwcx(rS,rA,rB) ->
-	((read_reg_data rS ii >>| read_reg_ord PPC.RES ii >>| read_reg_ord PPC.RESADDR ii)
+	((read_reg_data rS ii >>|
+          read_reg_data PPC.RES ii >>| read_reg_data PPC.RESADDR ii)
 	   >>| (* Enforce right associativity of >>| *)
 	   (read_reg_or_zero false rA ii >>| read_reg_ord rB ii)) >>=
 	fun (((vS,vR),aR),(aA,aB)) ->
@@ -325,6 +326,10 @@ module Make (C:Sem.Config)(V:Value.S)
 	create_barrier PPC.Isync ii >>! B.Next
     |PPC.Pdcbf (_rA,_rB) ->
         M.unitT B.Next
+    | PPC.Pcomment _ ->
+        Warn.warn_always "Instruction %s interpreted as a NOP"
+          (PPC.dump_instruction ii.A.inst);
+        M.unitT B.Next
     | PPC.Pnor (_, _, _, _)
     | PPC.Pneg (_, _, _)
     | PPC.Pslw (_, _, _, _)
@@ -340,9 +345,9 @@ module Make (C:Sem.Config)(V:Value.S)
     | PPC.Ploadx ((Byte|Short),_,_,_)
     | PPC.Pstore ((Byte|Short),_,_,_)
     | PPC.Pstorex ((Byte|Short),_,_,_)
-    | PPC.Pcomment _ ->
-        Warn.fatal "Instruction %s not implemented"
-          (PPC.dump_instruction ii.A.inst)
+        ->
+          Warn.fatal "Instruction %s not implemented"
+            (PPC.dump_instruction ii.A.inst)
         end
   end
     

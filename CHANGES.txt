@@ -1,3 +1,17 @@
+7.44
+  * herd: add atomic_compare_exchange_..._explicit in C parser.
+  * Suppress " in mcond output.
+7.43+3
+  * gen/litmus/herd: add ARMv8 LDAPR instruction (contribution by Will Deacon)
+  * herd: cos-opt.cat, bug ! --> Do not redefine RMW
+  * herd: PPC, avoid data or address dependencies from lwarx to matchin stwcx. 
+7.43+2
+ * Correct C semantics bug if (e) was understood as direct boolean 0/1 test.
+   Now understood as if (e != 0), as it should.
+7.43+1
+ * New tool mlock
+7.43
+ * opam release
 7.42+1
  * Add -cycles names option, to display cycles of failing checks.
  * Add support for C11 atomic_compare_exchange_... primitives.

@@ -4,7 +4,7 @@
 (* Jade Alglave, University College London, UK.                             *)
 (* Luc Maranget, INRIA Paris-Rocquencourt, France.                          *)
 (*                                                                          *)
-(* Copyright 2010-present Institut National de Recherche en Informatique et *)
+(* Copyright 2017-present Institut National de Recherche en Informatique et *)
 (* en Automatique and the authors. All rights reserved.                     *)
 (*                                                                          *)
 (* This software is governed by the CeCILL-B license under French law and   *)
@@ -15,46 +15,49 @@
 (****************************************************************************)
 
 {
+module type Config = sig
+  val sync : bool
+  val deref : bool
+end
 
+module type Out = sig
+  type t
+  val put_char : t -> char -> unit
+  val put : t -> string -> unit
+end
+
+module Make(O:Config)(Out:Out) = struct
 }
+let blank = [' ''\t']
+let alpha = ['a'-'z''A'-'Z']
+let num = ['0'-'9']
+let reg = alpha (alpha|num)*
+    
+rule main out = parse
+| '(' blank* "xor" blank+ (reg as r1) blank+ (reg as r2) ')' as line
+{
+ begin if r1 = r2 then
+   Out.put out (Printf.sprintf "(and %s 128)" r1)
+ else
+   Out.put out line
+ end ;
+ main out lexbuf
+}
+| "f[sync]" as token
+  { if O.sync then false else begin
+       Out.put out token ;
+       main out lexbuf
+     end  }
+| "[deref]"|"[lderef]" as token
+    { if O.deref then false else begin
+        Out.put out token ;
+        main out lexbuf
+      end }
 
-let digit = [ '0'-'9' ]
-let num = digit+
-let hexa = ['0'-'9' 'a'-'f' 'A'-'F' ]
-let alpha = [ 'a'-'z' 'A'-'Z']
-let name = alpha (alpha|digit)*
-let blank = [' ' '\t']
-let testname  = (alpha|digit|'_' | '/' | '.' | '-' | '+' | '[' | ']')+
-
-rule main add env = parse
-| eof { env }
-|
-  ("Cycle=" ([^'\n']+ as cycle) '\n') ?
-  "Relax" blank+
-  (testname as name) blank+
-  ("Ok"|"No" as v) blank+
-    ([^'\n']* as rem) '\n'
-  ("Safe" blank* '=' blank* ([^'\n']* as safes) '\n') ?
-    {
-     let name = Misc.clean_name name in
-     let v =
-       match v with
-       | "Ok" -> true | "No" -> false
-       | _ -> assert false in
-     let relaxs = LexUtil.split rem in
-     let safes = match safes with
-     | None -> []
-     | Some rem ->  LexUtil.split rem in
-     let cycle = match cycle with
-     | None -> ""
-     | Some cy -> cy in
-     main add (add env name v relaxs safes cycle) lexbuf
-   }
-| [^'\n']* '\n' { main add env lexbuf }
-| "" { env }
-
+| _ as c { Out.put_char out c ; main out lexbuf }
+| eof    { true }
 {
 
-let tokens add env lexbuf = main add env lexbuf
-
+ let tr out lexbuf  = main out lexbuf
+end
 }

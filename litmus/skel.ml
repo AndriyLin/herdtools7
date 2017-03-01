@@ -279,8 +279,8 @@ module Insert =
   let find_global_init a t =
     A.find_in_state (A.Location_global a) t.T.init
 
-  let have_finals_globals t =
-    not (StringSet.is_empty (U.get_final_globals t))
+  let have_observed_globals t =
+    not (StringSet.is_empty (U.get_observed_globals t))
 
 
   let dump_loc_name loc =  match loc with
@@ -402,9 +402,8 @@ module Insert =
     O.oi "int verbose;" ;
     O.oi "int size_of_test,max_run;" ;
     if do_verbose_barrier then O.oi "int verbose_barrier;" ;
-    begin match stride with
-    | None -> ()
-    | Some _ -> O.oi "int stride;"
+    begin if Stride.some stride then
+      O.oi "int stride;"
     end ;
     if Cfg.timeloop > 0 then O.oi "int max_loop;" ;
     if do_affinity then begin
@@ -826,16 +825,25 @@ let user2_barrier_def () =
         end
       end)
 
-
-  let dump_cond_fun env test =
-    let cond = test.T.condition in
+  let do_dump_cond_fun env cond =
     let find_type loc =
       let t = U.find_type loc env in
       CType.dump (CType.strip_atomic t) in
     DC.fundef find_type cond
 
+  let dump_cond_fun env test = do_dump_cond_fun env test.T.condition
+
+  let dump_filter env test = match test.T.filter with
+  | None -> ()
+  | Some f ->
+      let find_type loc =
+      let t = U.find_type loc env in
+      CType.dump (CType.strip_atomic t) in
+    DC.fundef_prop "filter_cond" find_type f
+
+
   let dump_cond_fun_call test dump_loc dump_val =
-    DC.funcall (test.T.condition) dump_loc dump_val
+    DC.funcall test.T.condition dump_loc dump_val
 
   let dump_defs_outs doc env test =
     (* If some of the output registers is of pointer type,
@@ -870,7 +878,7 @@ let user2_barrier_def () =
     O.o "/* Outcome collection */" ;
     O.o "/**********************/" ;
 (* Outcome type definition *)
-    let outs = U.get_final_locs test in
+    let outs = U.get_displayed_locs test in
     let nitems =
       let map =
         A.LocSet.fold
@@ -1027,7 +1035,7 @@ let user2_barrier_def () =
       O.o "/* Check data */" ;
       O.oi "pb_t *fst_barrier;" ;
       if do_safer_write then begin
-        let locs = U.get_final_globals test in
+        let locs = U.get_observed_globals test in
         if not (StringSet.is_empty locs) then begin
           O.oi "po_t *s_or;" ;
           StringSet.iter
@@ -1043,7 +1051,7 @@ let user2_barrier_def () =
 
   let dump_static_check_vars env test =
     if do_check_globals && do_safer_write then begin
-      let locs = U.get_final_globals test in
+      let locs = U.get_observed_globals test in
       StringSet.iter
         (fun a ->
           let loc = A.Location_global a in
@@ -1132,7 +1140,7 @@ let user2_barrier_def () =
 
 (* STABILIZE *)
       if  do_safer_write then begin
-        let locs = U.get_final_globals test in
+        let locs = U.get_observed_globals test in
         if not (StringSet.is_empty locs) then begin
           O.f "" ;
           O.f "static void stabilize_globals(int _id, ctx_t *_a) {" ;
@@ -1343,7 +1351,7 @@ let user2_barrier_def () =
       O.oi "_a->fst_barrier = pb_create(N);" ;
     end ;
     if do_safer && do_collect_after then begin
-      let locs = U.get_final_globals test in
+      let locs = U.get_observed_globals test in
       if not (StringSet.is_empty locs) then begin
         O.oi "_a->s_or = po_create(N);" ;
         loop_proc_prelude indent ;
@@ -1420,7 +1428,7 @@ let user2_barrier_def () =
       test ;
     if do_safer && do_collect_after then  begin
       pb_free "fst_barrier" ;
-      let locs = U.get_final_globals test in
+      let locs = U.get_observed_globals test in
       if not (StringSet.is_empty locs) then begin
           po_free "s_or" ;
           if do_dynamicalloc  then begin
@@ -1587,9 +1595,8 @@ let user2_barrier_def () =
         | _::_ ->
             O.oi "unsigned int _static_prefetch = _a->_p->static_prefetch;"
         end ;
-        begin match stride with
-        | None -> ()
-        | Some _ -> O.fi "int _stride = _a->_p->stride;"
+        begin if Stride.some stride then
+          O.oi "int _stride = _a->_p->stride;"
         end ;
         let addrs = A.Out.get_addrs out in
 (*
@@ -1606,14 +1613,12 @@ let user2_barrier_def () =
           outregs ;
 
         let iloop =
-          match stride with
-          | Some _ ->
-              O.fi "for (int _j = _stride ; _j > 0 ; _j--) {" ;
-              O.fii "for (int _i = _size_of_test-_j ; _i >= 0 ; _i -= _stride) {" ;
-              indent3
-          | None ->
+          if Stride.some stride then begin
+            O.fi "for (int _j = _stride ; _j > 0 ; _j--) {" ;
+            O.fii "for (int _i = _size_of_test-_j ; _i >= 0 ; _i -= _stride) {" ;
+            indent3 end else begin
               loop_test_prelude indent "_" ;
-              indent2 in
+              indent2 end in
         if do_custom then begin
           let i = iloop in
           begin match addrs with
@@ -1754,7 +1759,7 @@ let user2_barrier_def () =
         end ;
 
         if do_collect then begin
-          let locs = U.get_final_locs test in
+          let locs = U.get_displayed_locs test in
           O.fx iloop "barrier_wait(barrier);" ;
           O.fx iloop "int cond = final_ok(%s);"
             (dump_cond_fun_call test
@@ -1784,15 +1789,13 @@ let user2_barrier_def () =
 (*          O.fx iloop "barrier_wait(barrier);"
             Problematic 4.2W on squale *)
         end  ;
-        begin match stride with
-        | Some _ ->
-            loop_test_postlude indent2 ;
-            loop_test_postlude indent
-        | None ->
+        if Stride.some stride then begin
+          loop_test_postlude indent2 ;
+          loop_test_postlude indent
+        end else begin
             loop_test_postlude indent
         end ;
-
-        if do_safer && do_collect_after && have_finals_globals test then begin
+        if do_safer && do_collect_after && have_observed_globals test then begin
           O.fi "stabilize_globals(%i,_a);" proc ;
         end ;
         O.oi "mbar();" ;
@@ -1970,7 +1973,7 @@ let user2_barrier_def () =
     if do_collect_after then begin
       O.oii "/* Log final states */" ;
       loop_test_prelude indent2 "_b->" ;
-      let locs = U.get_final_locs test in
+      let locs = U.get_observed_locs test in
       let loc_arrays =
         A.LocSet.fold
           (fun loc k -> match loc with
@@ -2028,7 +2031,7 @@ let user2_barrier_def () =
       O.o "" ;
 (* check globals against stabilized value *)
       if do_safer && do_collect_after then begin
-        let locs =  U.get_final_globals test in
+        let locs =  U.get_observed_globals test in
         StringSet.iter
           (fun loc ->
             let loc = A.Location_global loc in
@@ -2063,8 +2066,16 @@ let user2_barrier_def () =
             "if (ctx.%s[_i] != ctx.%s[_i]) fatal(\"%s, address copy %s is wrong\") ; "
             cpy loc doc.Name.name cpy)
         cpys ;
+(* Check filter *)
+      let indent =
+        match test.T.filter with
+        | None -> indent3
+        | Some f ->
+            O.fiii "if (%s) {"
+              (DC.funcall_prop "filter_cond" f dump_loc_copy dump_ctx_addr) ;
+            indent4 in
 (* Compute final condition *)
-      O.fiii "cond = final_ok(%s);"
+      O.fx indent "cond = final_ok(%s);"
         (dump_cond_fun_call test dump_loc_copy dump_ctx_addr) ;
 (* Save outcome *)
       A.LocSet.iter
@@ -2077,37 +2088,40 @@ let user2_barrier_def () =
                   "o[%s_f+_j] = %s[_j]"
                   (dump_loc_name loc)
                   (dump_loc_copy loc) in
-              O.fiii "for (int _j = 0 ; _j < %i ; _j++) %s;" sz ins
+              O.fx indent "for (int _j = 0 ; _j < %i ; _j++) %s;" sz ins
           | _ ->
-              O.fiii "o[%s_f] = %s;"
+              O.fx indent "o[%s_f] = %s;"
                 (dump_loc_name loc)
                 (if CType.is_ptr t then
                   sprintf "idx_addr(&ctx,_i,%s)" (dump_loc_copy loc)
                 else
                   dump_loc_copy loc))
-        locs ;
-      O.oiii "add_outcome(hist,1,o,cond);" ;
+        (U.get_displayed_locs test) ;
+      O.ox indent "add_outcome(hist,1,o,cond);" ;
       if mk_dsa test then begin
-        O.oiii
+        O.ox indent
           "if (_b->aff_mode == aff_scan && _a->cpus[0] >= 0 && cond) {" ;
-        O.oiv "pm_lock(_a->p_mutex);" ;
-        O.oiv "ngroups[n_run % SCANSZ]++;" ;
-        O.oiv "pm_unlock(_a->p_mutex);" ;
-        O.oiii
+        let ni = Indent.tab indent in
+        O.ox ni "pm_lock(_a->p_mutex);" ;
+        O.ox ni "ngroups[n_run % SCANSZ]++;" ;
+        O.ox ni "pm_unlock(_a->p_mutex);" ;
+        O.ox indent
           "} else if (_b->aff_mode == aff_topo && _a->cpus[0] >= 0 && cond) {" ;
-        O.oiv "pm_lock(_a->p_mutex);" ;
-        O.oiv "ngroups[0]++;" ;
-        O.oiv "pm_unlock(_a->p_mutex);" ;
-        O.oiii "}"
+        O.ox ni "pm_lock(_a->p_mutex);" ;
+        O.ox ni "ngroups[0]++;" ;
+        O.ox ni "pm_unlock(_a->p_mutex);" ;
+        O.ox indent "}"
       end ;
 
 (****************)
-
-      O.oiii "if (cond) { hist->n_pos++; } else { hist->n_neg++; }" ;
+      O.ox indent "if (cond) { hist->n_pos++; } else { hist->n_neg++; }" ;
       if (do_verbose_barrier) then begin
-        O.oiii "if (_b->verbose_barrier) {" ;
-        O.oiv "pp_tb_log(_a->p_mutex,&ctx,_i,cond);" ;
-        O.oiii "}"
+        O.ox indent "if (_b->verbose_barrier) {" ;
+        O.ox (Indent.tab indent) "pp_tb_log(_a->p_mutex,&ctx,_i,cond);" ;
+        O.ox indent "}"
+      end ;
+      begin match test.T.filter with
+      | None -> () | Some _ -> O.fiii "}"
       end ;
       loop_test_postlude indent2 ;
       ()
@@ -2200,6 +2214,10 @@ let user2_barrier_def () =
       O.fx i "}"
     end else f i
 
+  let check_speedcheck_filter test i f = match test.T.filter with
+  | Some _ -> ()
+  | None -> check_speedcheck i f
+
   let dump_run doc _env test =
 (* Custom affinity information *)
     let dca,ca = mk_dca test in
@@ -2251,9 +2269,8 @@ let user2_barrier_def () =
       O.oi "prm.verbose_barrier = cmd->verbose_barrier;" ;
     O.oi "prm.size_of_test = cmd->size_of_test;" ;
     O.oi "prm.max_run = cmd->max_run;" ;
-    begin match stride with
-    | None -> ()
-    | Some _ -> O.oi "prm.stride = cmd->stride;"
+    begin if Stride.some stride then
+      O.oi "prm.stride = cmd->stride > 0 ? cmd->stride : N ;"
     end ;
     if do_speedcheck then
       O.oi "prm.speedcheck = cmd->speedcheck; prm.stop_now = 0;" ;
@@ -2318,11 +2335,9 @@ let user2_barrier_def () =
     O.oi "if (prm.verbose) {" ;
     let fmt = doc.Name.name ^ ": n=%i, r=%i, s=%i" in
     O.fii "log_error( \"%s\",n_exe,prm.max_run,prm.size_of_test);" fmt ;
-    begin match stride with
-    | None -> ()
-    | Some _ ->
-        let fmt = ", st=%i" in
-        O.fii "log_error(\"%s\",prm.stride);" fmt
+    if Stride.some stride then begin
+      let fmt = ", st=%i" in
+      O.fii "log_error(\"%s\",prm.stride);" fmt
     end ;
     begin match memory with
     | Direct -> ()
@@ -2477,10 +2492,10 @@ let user2_barrier_def () =
       O.oii "hist_t *hk = (hist_t *)join_detached(op[k]);"
     else
       O.oii "hist_t *hk = (hist_t *)join(&th[k]);" ;
-    check_speedcheck indent2
+    check_speedcheck_filter test indent2
       (fun i ->
         O.ox i
-          "if (sum_hist(hk) != n_outs || hk->n_pos + hk->n_neg != n_outs) {" ;
+          "if (sum_outs(hk->outcomes) != n_outs || hk->n_pos + hk->n_neg != n_outs) {" ;
         O.oy i (sprintf "fatal(\"%s, sum_hist\");" doc.Name.name) ;
         O.ox i "}") ;
     O.oii "merge_hists(hist,hk);" ;
@@ -2493,10 +2508,10 @@ let user2_barrier_def () =
     O.oi "pb_free(p_barrier);" ;
     O.o "" ;
     O.oi "n_outs *= n_exe ;" ;
-    check_speedcheck indent
+    check_speedcheck_filter test indent
       (fun i ->
         O.ox i
-          "if (sum_hist(hist) != n_outs || hist->n_pos + hist->n_neg != n_outs) {"  ;
+          "if (sum_outs(hist->outcomes) != n_outs || hist->n_pos + hist->n_neg != n_outs) {"  ;
         O.oy i (sprintf "fatal(\"%s, sum_hist\") ;" doc.Name.name);
         O.ox i "}") ;
     O.oi "count_t p_true = hist->n_pos, p_false = hist->n_neg;" ;
@@ -2667,6 +2682,7 @@ let user2_barrier_def () =
     dump_threads test ;
     if mk_dsa test then dump_topology test ;
     let cpys = dump_def_ctx env test in
+    dump_filter env test ;
     dump_cond_fun env test ;
     dump_defs_outs doc env test ;
     dump_reinit env test cpys ;

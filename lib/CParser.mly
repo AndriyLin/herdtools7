@@ -116,10 +116,10 @@ shallow_main:
     { CAst.Test {CAst.proc = $1; params = $3; body = $5} :: $6 }
 
 declaration:
-| typ IDENTIFIER SEMI {}
+| typ IDENTIFIER SEMI { DeclReg ($1,$2) }
 
 initialisation:
-| typ IDENTIFIER EQ expr { StoreReg ($2,$4) ; }
+| typ IDENTIFIER EQ expr { StoreReg (Some $1,$2,$4) ; }
 
 annot:
 | IDENTIFIER { $1 }
@@ -166,8 +166,12 @@ expr:
   { ECall ($1,$3) }
 | WCAS LPAR expr COMMA expr COMMA expr RPAR
   { ECas ($3,$5,$7,SC,SC,false) }
+| WCAS_EXPLICIT LPAR expr COMMA expr COMMA expr COMMA MEMORDER COMMA MEMORDER  RPAR
+  { ECas ($3,$5,$7,$9,$11,false) }
 | SCAS LPAR expr COMMA expr COMMA expr RPAR
   { ECas ($3,$5,$7,SC,SC,true) }
+| SCAS_EXPLICIT LPAR expr COMMA expr COMMA expr COMMA MEMORDER COMMA MEMORDER  RPAR
+  { ECas ($3,$5,$7,$9,$11,true) }
 
 args:
 | { [] }
@@ -190,7 +194,7 @@ instruction:
 | initialisation SEMI
   { $1 }
 | IDENTIFIER EQ expr SEMI
-  { StoreReg($1,$3) }
+  { StoreReg(None,$1,$3) }
 | STAR location EQ expr SEMI
   { StoreMem($2,$4,AN []) }
 | STORE LBRACE annot_list RBRACE LPAR expr COMMA expr RPAR SEMI
@@ -220,12 +224,12 @@ instruction:
 ins_seq:
 | block_ins { [$1] }
 | block_ins ins_seq { $1::$2 }
-| declaration { [] }
-| declaration ins_seq { $2 }
+| declaration { [$1] }
+| declaration ins_seq { $1::$2 }
 
 block_ins:
 | instruction { $1 }
-| LBRACE ins_seq RBRACE { Seq($2) }
+| LBRACE ins_seq RBRACE { Seq($2,true) }
 
 pseudo_seq:
 | block_ins { [Instruction $1] }
@@ -257,10 +261,7 @@ formals:
 | formals_ne { $1 }
 
 body:
-| LBRACE ins_seq RBRACE
-  { match $2 with
-  | [i]  -> i
-  | is -> Seq is }
+| LBRACE ins_seq RBRACE { Seq ($2,true) }
 
 macro:
 | IDENTIFIER LPAR formals RPAR expr { EDef ($1,$3,$5) }

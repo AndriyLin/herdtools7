@@ -216,8 +216,20 @@ module Do
                 L.macros_parser)
             (O.libfind fmacros) in
         List.map (L.macros_expand ms) in
-    let prog =  List.map (fun p -> p.CAst.proc,expand_body p.CAst.body) prog in 
 
+    let prog =  List.map (fun p -> p.CAst.proc,expand_body p.CAst.body) prog in
+(*
+    List.iter
+      (fun (p,code) ->
+        Printf.eprintf "++++++ %i\n" p ;
+        List.iter
+          (fun p ->
+            A.pseudo_iter
+              (fun i -> Printf.eprintf "%s\n" (A.dump_instruction i))
+              p)
+          code)
+      prog ;
+*)
     let (locs,filter,final,_quantifiers) =
       I.call_parser_loc "final"
 		      chan constr_loc SL.token StateParser.constraints in
@@ -249,14 +261,16 @@ module Do
          { parsed with
            MiscParser.condition =
              ConstrGen.set_kind k parsed.MiscParser.condition; } in
-    let parsed =
-      let info = parsed.MiscParser.info in
-      { parsed with MiscParser.info =
+    let parsed = match MiscParser.get_hash parsed with
+        | None ->
+            let info = parsed.MiscParser.info in
+            { parsed with MiscParser.info =
 	       ("Hash",
 		(* For computing hash, we must parse as litmus does.
                 This includes stripping away toplevel '*' of types *)
 		let prog = List.map CAstUtils.strip_pointers prog_litmus in
-		D.digest init prog all_locs)::info ; } in
+		D.digest init prog all_locs)::info ; }
+        | Some _ -> parsed in
     parsed
 end
       		     

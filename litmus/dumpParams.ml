@@ -18,7 +18,7 @@ module type Config = sig
   val size : int
   val runs : int
   val avail : int option
-  val stride : int option
+  val stride : Stride.t
   val timeloop : int
   val mode : Mode.t
 end
@@ -36,10 +36,14 @@ module Make (O:Config) =
         | None -> "1" | Some n -> sprintf "%i" n) ;
       begin match O.mode with
       | Mode.Std ->
-          dump_def "STRIDE"
-            (match O.stride with
-            | None -> "(-1)" | Some i -> sprintf "%i" i) ;
-            dump_def "MAX_LOOP"
+          begin
+            let open Stride in
+            match O.stride with
+            | No -> dump_def "STRIDE" "(-1)"
+            | Adapt ->  dump_def "STRIDE" "N"
+            | St i ->  dump_def "STRIDE" (sprintf "%i" i)
+          end ;
+          dump_def "MAX_LOOP"
             (let x = O.timeloop in if x > 0 then sprintf "%i" x else "0")
       | Mode.PreSi -> ()
       end ;

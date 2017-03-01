@@ -16,17 +16,15 @@
 #include <stdio.h>
 #include <sched.h>
 #include <unistd.h>
-#ifdef _FREEBSD_AFFINITY
 #include <sys/cpuset.h>
 #include <pthread_np.h>
-typedef cpuset_t cpu_set_t;
-#endif
 #include "utils.h"
 #include "affinity.h"
 
+
 #ifdef CPUS_DEFINED
 cpus_t *read_affinity(void) {
-  cpu_set_t mask;
+  cpuset_t mask;
   int sz = 0 ;
   int res = pthread_getaffinity_np(pthread_self(), sizeof(mask), &mask) ;
   
@@ -95,7 +93,7 @@ cpus_t *read_force_affinity(int n_avail, int verbose) {
  
 
 void write_affinity(cpus_t *p) {
-  cpu_set_t mask;
+  cpuset_t mask;
   int exists_pos = 0 ;
 
   CPU_ZERO(&mask) ;
@@ -116,7 +114,7 @@ void write_affinity(cpus_t *p) {
 
 void write_one_affinity(int a) {
   if (a >= 0) {
-    cpu_set_t mask;
+    cpuset_t mask;
     CPU_ZERO(&mask) ;
     CPU_SET(a,&mask) ;
     int r = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask) ;
@@ -143,7 +141,7 @@ static int get_present(void) {
 
 void force_one_affinity(int a, int sz,int verbose, char *name) {
   if (a >= 0) {
-    cpu_set_t mask;
+    cpuset_t mask;
     int r ;
     CPU_ZERO(&mask) ;
     CPU_SET(a,&mask) ;

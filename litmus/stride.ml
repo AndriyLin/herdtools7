@@ -4,7 +4,7 @@
 (* Jade Alglave, University College London, UK.                             *)
 (* Luc Maranget, INRIA Paris-Rocquencourt, France.                          *)
 (*                                                                          *)
-(* Copyright 2010-present Institut National de Recherche en Informatique et *)
+(* Copyright 2017-present Institut National de Recherche en Informatique et *)
 (* en Automatique and the authors. All rights reserved.                     *)
 (*                                                                          *)
 (* This software is governed by the CeCILL-B license under French law and   *)
@@ -14,47 +14,31 @@
 (* "http://www.cecill.info". We also give a copy in LICENSE.txt.            *)
 (****************************************************************************)
 
-{
+open Printf
 
-}
+type t =
+  | No
+  | Adapt
+  | St of int
 
-let digit = [ '0'-'9' ]
-let num = digit+
-let hexa = ['0'-'9' 'a'-'f' 'A'-'F' ]
-let alpha = [ 'a'-'z' 'A'-'Z']
-let name = alpha (alpha|digit)*
-let blank = [' ' '\t']
-let testname  = (alpha|digit|'_' | '/' | '.' | '-' | '+' | '[' | ']')+
 
-rule main add env = parse
-| eof { env }
-|
-  ("Cycle=" ([^'\n']+ as cycle) '\n') ?
-  "Relax" blank+
-  (testname as name) blank+
-  ("Ok"|"No" as v) blank+
-    ([^'\n']* as rem) '\n'
-  ("Safe" blank* '=' blank* ([^'\n']* as safes) '\n') ?
-    {
-     let name = Misc.clean_name name in
-     let v =
-       match v with
-       | "Ok" -> true | "No" -> false
-       | _ -> assert false in
-     let relaxs = LexUtil.split rem in
-     let safes = match safes with
-     | None -> []
-     | Some rem ->  LexUtil.split rem in
-     let cycle = match cycle with
-     | None -> ""
-     | Some cy -> cy in
-     main add (add env name v relaxs safes cycle) lexbuf
-   }
-| [^'\n']* '\n' { main add env lexbuf }
-| "" { env }
+let tags = [ "none"; "adapt"; "<int>"; ]
 
-{
 
-let tokens add env lexbuf = main add env lexbuf
+let parse tag =
+  try Some (St (int_of_string tag))
+  with Failure _ ->
+    match Misc.lowercase tag with
+    | "no"|"none" -> Some No
+    | "adapt" -> Some Adapt
+    | _ -> None
 
-}
+let pp = function
+  | No -> "none"
+  | Adapt -> "adapt"
+  | St i -> sprintf "%i" i
+
+let some = function
+  | No -> false
+  | Adapt|St _ -> true
+        
