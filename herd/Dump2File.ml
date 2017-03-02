@@ -55,13 +55,15 @@ module Make (SemArg : SemExtra.S) = struct
 
       let action_str_of a =
         let s =
-          if Evt.Act.is_store a
+          if Evt.Act.is_store a && Evt.Act.is_load a
+          then "RMW"  (* is_rmw is only in CAction, not a universal API *)
+          else if Evt.Act.is_store a
           then "W"
           else if Evt.Act.is_load a
           then "R"
           else if Evt.Act.is_barrier a
           then "F"
-          else Evt.Act.pp_action a
+          else assert false  (* instead of Evt.Act.pp_action a *)
         in "action:" ^ s
       in
       let act = e.Evt.action in
