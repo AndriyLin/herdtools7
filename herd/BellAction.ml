@@ -204,7 +204,8 @@ end = struct
      "Ftotal",is_total_barrier;]
 
   let arch_fences = []
-      
-      
-end
 
+
+  (* XL: added for my C11 experiments. No memory order information here. *)
+  let xl_memory_order_str (a : action) : string = ""
+end

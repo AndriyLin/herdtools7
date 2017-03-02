@@ -96,4 +96,14 @@ module type S = sig
 
   val make_action_atomic : action -> action
 
+
+  (****************************************************************************)
+  (* XL: While extending to C11 experiments, I didn't find any existing API for
+     dumping memory orders in C11, that is hidden in pp_action(). However, I do
+     need such information, so modified the interface and add the code
+     myself. Only C11 actions need to handle this. All other actions can simply
+     return empty string. *)
+  (****************************************************************************)
+  val xl_memory_order_str : action -> string
+
 end

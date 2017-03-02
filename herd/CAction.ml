@@ -297,5 +297,22 @@ end = struct
     | Fence (AN a) -> List.exists (fun a -> Misc.string_eq str a) a 
     | Access (_, _, _, MO _,_)|Fence (MO _)|RMW (_, _, _, _)
     | Lock _|Unlock _ -> false
-end
 
+    (* XL: added for my C11 experiments. *)
+    let xl_memory_order_str (a : action) : string = match a with
+      | Access (_, _, _, mo, _) ->
+         (match mo with
+          | MO mo -> MemOrder.pp_mem_order_short mo
+          | AN [] -> ""
+          (* According to my generated elogs, pp_annot is never used in
+             experiments. *)
+          | AN a -> pp_annot a)
+      | Fence mo ->
+         (match mo with
+          | MO mo -> MemOrder.pp_mem_order_short mo
+          | AN a ->  pp_annot a)
+      | RMW (_, _, _, mo) ->
+         MemOrder.pp_mem_order_short mo
+      | _ ->  (* the rest Lock/Unlock are irrelevant *)
+         ""
+end

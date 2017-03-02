@@ -210,5 +210,7 @@ end = struct
 
     let annot_in_list _str _ac = false
 
-end
 
+    (* XL: added for my C11 experiments. No memory order information here. *)
+    let xl_memory_order_str (a : action) : string = ""
+end

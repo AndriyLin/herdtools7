@@ -72,6 +72,12 @@ module Make (SemArg : SemExtra.S) = struct
         else action_str in
       pl log_oc action_str ;
 
+      let memorder_str =
+        let act = e.Evt.action in
+        let mo_str = Evt.Act.xl_memory_order_str act
+        in "memoryorder:" ^ mo_str
+      in pl log_oc memorder_str ;
+
       let address_str_of a =
         let s = match Evt.Act.location_of a with
           | Some loc -> Arch.pp_location loc
