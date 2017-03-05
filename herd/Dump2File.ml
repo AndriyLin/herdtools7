@@ -63,7 +63,7 @@ module Make (SemArg : SemExtra.S) = struct
           then "R"
           else if Evt.Act.is_barrier a
           then "F"
-          else assert false  (* instead of Evt.Act.pp_action a *)
+          else Evt.Act.pp_action a  (* This is necessary, e.g. Commit *)
         in "action:" ^ s
       in
       let act = e.Evt.action in
