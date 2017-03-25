@@ -371,7 +371,9 @@ module Make(O:Config)(M:XXXMem.S) =
           | _ -> ()
           end ;
           let fsc =
-            if O.outcomereads then fsc
+            (* XL: show all locations in states summary *)
+            if O.xl_showalllocs then fsc
+            else if O.outcomereads then fsc
             else begin
               let dlocs = S.displayed_locations test in
               A.state_restrict_locs dlocs fsc
@@ -465,10 +467,13 @@ module Make(O:Config)(M:XXXMem.S) =
         Handler.pop () in
 (* Reduce final states, so as to show relevant locations only *)
       let finals =
-        if O.outcomereads then
+        (* XL: show all locations in states summary *)
+        if O.xl_showalllocs then c.states
+        else if O.outcomereads then
           let locs = 
             A.LocSet.union
-              (S.displayed_locations test)
+              (*(S.displayed_locations test)*)
+              (S.observed_locations test)
               c.reads in
           A.StateSet.map
             (fun st -> A.state_restrict_locs locs st)
