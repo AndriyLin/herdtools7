@@ -30,6 +30,11 @@ module type Config = sig
   val showkind : bool
   val shortlegend : bool
   val outcomereads : bool
+
+  (* XL: added to enable/disable my added functionality *)
+  val xl_showalllocs : bool
+  val xl_dumpallexecs : bool
+
   val outputdir : PrettyConf.outputdir_mode
   val suffix : string
   val dumpes : bool
@@ -313,13 +318,14 @@ module Make(O:Config)(M:XXXMem.S) =
             | ShowFlag f -> Flag.Set.mem (Flag.Flag f) flags in
 
           (* XL instrumented here *)
-          begin
-            (* Runing litmus tests with complete allowed/forbidden behaviors, I
-               save all executions here. Those allowed ones will be used as
-               positive examples, while forbidden ones are negative examples. *)
-            let condStr = C.constraints_to_string test.cond in
-            xl_dump_executions test conc vbpp ok condStr
-          end ;
+          if O.xl_dumpallexecs
+          then begin
+              (* Runing litmus tests with complete allowed/forbidden behaviors, I
+                 save all executions here. Those allowed ones will be used as
+                 positive examples, while forbidden ones are negative examples. *)
+              let condStr = C.constraints_to_string test.cond in
+              xl_dump_executions test conc vbpp ok condStr
+            end ;
 
           begin match ochan with
           | Some (chan,_) when show_exec ->            

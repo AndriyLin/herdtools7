@@ -194,6 +194,13 @@ and opt = parse
     { lex_bool PP.hexa arg }
 | "outcomereads" arg
     { lex_bool outcomereads arg }
+
+(* XL: added to enable/disable my added functionality *)
+| "xl_showalllocs" arg
+    { lex_bool xl_showalllocs arg }
+| "xl_dumpallexecs" arg
+    { lex_bool xl_dumpallexecs arg }
+
 | "dotmode" arg
     { lex_tag "dotmode" PrettyConf.parse_dotmode PrettyConf.tags_dotmode
         PP.dotmode arg }

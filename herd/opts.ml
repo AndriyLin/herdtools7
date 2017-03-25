@@ -54,6 +54,11 @@ let restrict = ref Restrict.No
 let showkind = ref false
 let shortlegend = ref false
 let outcomereads = ref false
+
+(* XL: added to enable/disable my added functionality *)
+let xl_showalllocs = ref false
+let xl_dumpallexecs = ref false
+
 let suffix = ref ""
 let dumpes = ref false
 let outputdir = ref PrettyConf.NoOutputdir

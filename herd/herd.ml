@@ -393,6 +393,11 @@ let options = [
     Restrict.tags
     (sprintf "restrict outcomes, default %s" (Restrict.pp !restrict));
   parse_bool "-outcomereads" outcomereads "include all memory reads in outcomes" ;
+
+  (* XL: added to enable/disable my added functionality *)
+  parse_bool "-xl_showalllocs" xl_showalllocs "really include all memory reads in outcome states, -outcomereads doesn't work.." ;
+  parse_bool "-xl_dumpallexecs" xl_dumpallexecs "output all details of execs to a log file" ;
+
   parse_string_opt "-overlap" PP.overlap "specify graph overlap attribute" ;
   parse_bool "-relabel" PP.relabel
     "merge power/arm labels(e.g sync -> sync/dmb)" ;
@@ -480,6 +485,11 @@ let () =
     let strictskip = !strictskip
     let cycles = !cycles
     let outcomereads = !outcomereads
+
+    (* XL: added to enable/disable my added functionality *)
+    let xl_showalllocs = !xl_showalllocs
+    let xl_dumpallexecs = !xl_dumpallexecs
+
     let show = !show
     let badexecs = !badexecs 
     let badflag = !badflag

@@ -53,6 +53,11 @@ val restrict : Restrict.t ref
 val showkind : bool ref
 val shortlegend : bool ref
 val outcomereads : bool ref
+
+(* XL: added to enable/disable my added functionality *)
+val xl_showalllocs : bool ref
+val xl_dumpallexecs : bool ref
+
 val outputdir : PrettyConf.outputdir_mode ref
 val suffix : string ref
 val dumpes : bool ref
