@@ -468,7 +468,13 @@ module Make(O:Config)(M:XXXMem.S) =
 (* Reduce final states, so as to show relevant locations only *)
       let finals =
         (* XL: show all locations in states summary *)
-        if O.xl_showalllocs then c.states
+        if O.xl_showalllocs then
+          (* XL: it seems that surprisingly, CR0 is also printed, that should
+             not happen, because herd7 doesn't recognize CR0 later on.. *)
+          let loc_ok loc = not (A.is_cr0 loc) in
+          A.StateSet.map
+            (fun st -> A.state_restrict st loc_ok)
+            c.states
         else if O.outcomereads then
           let locs = 
             A.LocSet.union

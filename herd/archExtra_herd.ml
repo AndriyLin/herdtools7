@@ -67,6 +67,12 @@ module type S = sig
   val simplify_vars_in_loc : I.V.solution ->  location -> location
   val map_loc : (I.V.v -> I.V.v) -> location -> location
 
+  (* XL: added because CR0 is also printed when displaying all locs in final
+     states, that should be prevented because herd7 doesn't recognize CR0 in its
+     litmus condition. *)
+  val is_cr0 : location -> bool
+
+
   type state (* Now abstract, suicide ? *)
 
   val state_empty : state
@@ -228,6 +234,16 @@ module Make(C:Config) (I:I) : S with module I = I
   | Location_reg _ -> loc
   | Location_global a -> Location_global (fv a)
   | Location_deref (a,idx) -> Location_deref (fv a,idx)
+
+
+  (* XL: added to identify n:CR0 locations *)
+  let is_cr0 loc = match loc with
+    | Location_reg (proc, r) ->
+       let reg_str = I.pp_reg r in
+       String.compare reg_str "CR0" = 0
+    | Location_global a -> false
+    | Location_deref (a, i) -> false
+
 
 (***************************************************)
 (* State operations, implemented with library maps *)
