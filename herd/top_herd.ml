@@ -471,15 +471,14 @@ module Make(O:Config)(M:XXXMem.S) =
         if O.xl_showalllocs then
           (* XL: it seems that surprisingly, CR0 is also printed, that should
              not happen, because herd7 doesn't recognize CR0 later on.. *)
-          let loc_ok loc = not (A.is_cr0 loc) in
+          let loc_ok loc = not (A.xl_is_bad_reg loc) in
           A.StateSet.map
             (fun st -> A.state_restrict st loc_ok)
             c.states
         else if O.outcomereads then
           let locs = 
             A.LocSet.union
-              (*(S.displayed_locations test)*)
-              (S.observed_locations test)
+              (S.displayed_locations test)
               c.reads in
           A.StateSet.map
             (fun st -> A.state_restrict_locs locs st)
