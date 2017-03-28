@@ -109,6 +109,13 @@ module type S = sig
   val state_restrict : state -> (location -> bool) -> state
   val state_restrict_locs : LocSet.t -> state -> state
 
+  (* XL: added so as to patch all locations to appear in final states summary.
+     Otherwise those not executed (e.g. in else branch) may not appear. Original
+     code only has a start from scratch folding procedure, I need it to build on
+     the given state. *)
+  val xl_state_patch : LocSet.t -> state -> state
+
+
   (* Set of states *)
   module StateSet : MySet.S with type elt = state
 
@@ -343,7 +350,15 @@ module Make(C:Config) (I:I) : S with module I = I
     LocSet.fold
       (fun loc r -> state_add r loc (look_in_state st loc))
       locs state_empty
-    
+
+  let xl_state_patch locs st =
+    let accumulate loc accu =
+      if State.mem loc st
+      then accu
+      else state_add accu loc (look_in_state st loc)
+    in LocSet.fold accumulate locs st
+
+
   (*********************************)
   (* Components of test structures *)
   (*********************************)
